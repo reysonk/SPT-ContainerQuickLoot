@@ -26,12 +26,27 @@ namespace CactusPie.ContainerQuickLoot
             GClass2585.EMoveItemOrder order,
             bool simulate)
         {
-            // We only execute this for ctrl+click move
-            if (order != GClass2585.EMoveItemOrder.MoveToAnotherSide)
+            // If is ctrl+click loot
+            if (order == GClass2585.EMoveItemOrder.MoveToAnotherSide)
+            {
+                if (!ContainerQuickLootPlugin.EnableForCtrlClick.Value)
+                {
+                    return true;
+                }
+            }
+            // If is loose loot pick up
+            else if (order == GClass2585.EMoveItemOrder.PickUp && controller.OwnerType == EOwnerType.Profile)
+            {
+                if (!ContainerQuickLootPlugin.EnableForLooseLoot.Value)
+                {
+                    return true;
+                }
+            }
+            else
             {
                 return true;
             }
-
+            
             GameWorld gameWorld = Singleton<GameWorld>.Instance;
 
             // If gameWorld is null that means the game is currently not in progress, for instance you're in your hideout
