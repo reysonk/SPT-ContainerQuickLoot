@@ -1,6 +1,5 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
-using BepInEx.Logging;
 using JetBrains.Annotations;
 
 namespace CactusPie.ContainerQuickLoot
@@ -12,6 +11,8 @@ namespace CactusPie.ContainerQuickLoot
         
         internal static ConfigEntry<bool> EnableForLooseLoot { get; set; }
         
+        internal static ConfigEntry<bool> AutoMergeStacks { get; set; }
+
         [UsedImplicitly]
         internal void Start()
         {
@@ -36,6 +37,17 @@ namespace CactusPie.ContainerQuickLoot
                 new ConfigDescription
                 (
                     "Automatically put loose loot in containers"
+                )
+            );
+            
+            AutoMergeStacks = Config.Bind
+            (
+                sectionName,
+                "Merge stacks",
+                true,
+                new ConfigDescription
+                (
+                    "Automatically merge stacks (money, ammo, etc.) when transferring them into a container"
                 )
             );
 

@@ -90,6 +90,27 @@ namespace CactusPie.ContainerQuickLoot
                     continue;
                 }
 
+                if (ContainerQuickLootPlugin.AutoMergeStacks.Value && item.StackMaxSize > 1 && item.StackObjectsCount != item.StackMaxSize)
+                {
+                    foreach (KeyValuePair<Item, LocationInGrid> containedItem in container.ContainedItems)
+                    {
+                        if (containedItem.Key.Template._id != item.Template._id)
+                        {
+                            continue;
+                        }
+                        
+                        if (containedItem.Key.StackObjectsCount + item.StackObjectsCount > item.StackMaxSize)
+                        {
+                            continue;
+                        }
+                        
+                        GStruct375<GClass2599> mergeResult = GClass2585.Merge(item, containedItem.Key, controller, simulate);
+                        __result = new GStruct375<GInterface275>(mergeResult.Value);
+                        return false;
+                    }
+                }
+                
+
                 GClass2580 location = container.FindLocationForItem(item);
                 if (location == null)
                 {
