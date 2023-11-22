@@ -54,6 +54,12 @@ namespace CactusPie.ContainerQuickLoot
             {
                 return true;
             }
+            
+            // This check needs to be done only in game - otherwise we will not be able to receive quest rewards!
+            if (item.QuestItem)
+            {
+                return true;
+            }
                 
             Player player = GetLocalPlayerFromWorld(gameWorld);
             var inventory = (Inventory)typeof(Player).GetProperty("Inventory", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(player);
