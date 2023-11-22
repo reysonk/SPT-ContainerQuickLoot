@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Aki.Reflection.Patching;
 using Comfort.Common;
 using EFT;
@@ -10,6 +12,8 @@ namespace CactusPie.ContainerQuickLoot
 {
     public class QuickTransferPatch : ModulePatch
     {
+        private static readonly Regex LootTagRegex = new Regex("@loot[0-9]*", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
+        
         protected override MethodBase GetTargetMethod()
         {
             MethodInfo method = typeof(GClass2585).GetMethod("QuickFindAppropriatePlace", BindingFlags.Public | BindingFlags.Static);
@@ -34,6 +38,7 @@ namespace CactusPie.ContainerQuickLoot
                     return true;
                 }
             }
+
             // If is loose loot pick up
             else if (order == GClass2585.EMoveItemOrder.PickUp && controller.OwnerType == EOwnerType.Profile)
             {
@@ -68,22 +73,15 @@ namespace CactusPie.ContainerQuickLoot
             {
                 return true;
             }
-
-            ContainerCollection containerCollection = null;
             
-            Item targetContainer = inventory.Equipment.GetAllItems().FirstOrDefault(x =>
-                x.IsContainer && 
-                x.TryGetItemComponent(out TagComponent tagComponent) &&
-                tagComponent.Name.Contains("@loot") &&
-                (containerCollection = x as ContainerCollection) != null &&
-                containerCollection.Containers.Any(y => y.CanAccept(item)));
+            ContainerCollection targetContainerCollection = FindTargetContainerCollection(item, inventory);
 
-            if (targetContainer == null || containerCollection == null)
+            if (targetContainerCollection == null)
             {
                 return true;
             }
 
-            foreach (IContainer collectionContainer in containerCollection.Containers)
+            foreach (IContainer collectionContainer in targetContainerCollection.Containers)
             {
                 if (!(collectionContainer is GClass2318 container))
                 {
@@ -139,7 +137,64 @@ namespace CactusPie.ContainerQuickLoot
 
             return true;
         }
-        
+
+        private static ContainerCollection FindTargetContainerCollection(Item item, Inventory inventory)
+        {
+            ContainerCollection targetContainerCollection = null;
+            int? lowestFoundPriority = null;
+            
+            foreach (Item inventoryItem in inventory.Equipment.GetAllItems())
+            {
+                // It has to be a container collection - an item that we can transfer the loot into
+                if (!inventoryItem.IsContainer)
+                {
+                    continue;
+                }
+
+                // The container has to have a tag - later we will check it's the @loot tag
+                if (!inventoryItem.TryGetItemComponent(out TagComponent tagComponent))
+                {
+                    continue;
+                }
+
+                // We check if there is a @loot tag
+                Match regexMatch = LootTagRegex.Match(tagComponent.Name);
+
+                if (!regexMatch.Success)
+                {
+                    continue;
+                }
+
+                // We check if any of the containers in the collection can hold our item
+                var containerCollection = inventoryItem as ContainerCollection;
+
+                if (containerCollection == null || !containerCollection.Containers.Any(container => container.CanAccept(item)))
+                {
+                    continue;
+                }
+
+                // We extract the suffix - if not suffix provided, we assume 0
+                // Length of @loot - we only want the number suffix
+                const int lootTagLength = 5;
+
+                string priorityString = regexMatch.Value.Substring(lootTagLength);
+                int priority = priorityString.Length == 0 ? 0 : int.Parse(priorityString);
+
+                if (lowestFoundPriority == null || priority < lowestFoundPriority.Value)
+                {
+                    lowestFoundPriority = priority;
+                }
+                else
+                {
+                    continue;
+                }
+
+                targetContainerCollection = containerCollection;
+            }
+
+            return targetContainerCollection;
+        }
+
         private static Player GetLocalPlayerFromWorld(GameWorld gameWorld)
         {
             if (gameWorld == null || gameWorld.MainPlayer == null)
