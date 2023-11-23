@@ -74,14 +74,9 @@ namespace CactusPie.ContainerQuickLoot
                 return true;
             }
             
-            ContainerCollection targetContainerCollection = FindTargetContainerCollection(item, inventory);
+            IEnumerable<IContainer> targetContainers = FindTargetContainers(item, inventory);
 
-            if (targetContainerCollection == null)
-            {
-                return true;
-            }
-
-            foreach (IContainer collectionContainer in targetContainerCollection.Containers)
+            foreach (IContainer collectionContainer in targetContainers)
             {
                 if (!(collectionContainer is GClass2318 container))
                 {
@@ -138,10 +133,9 @@ namespace CactusPie.ContainerQuickLoot
             return true;
         }
 
-        private static ContainerCollection FindTargetContainerCollection(Item item, Inventory inventory)
+        private static IEnumerable<IContainer> FindTargetContainers(Item item, Inventory inventory)
         {
-            ContainerCollection targetContainerCollection = null;
-            int? lowestFoundPriority = null;
+            var matchingContainerCollections = new List<(ContainerCollection containerCollection, int priority)>();
             
             foreach (Item inventoryItem in inventory.Equipment.GetAllItems())
             {
@@ -179,20 +173,15 @@ namespace CactusPie.ContainerQuickLoot
 
                 string priorityString = regexMatch.Value.Substring(lootTagLength);
                 int priority = priorityString.Length == 0 ? 0 : int.Parse(priorityString);
-
-                if (lowestFoundPriority == null || priority < lowestFoundPriority.Value)
-                {
-                    lowestFoundPriority = priority;
-                }
-                else
-                {
-                    continue;
-                }
-
-                targetContainerCollection = containerCollection;
+                
+                matchingContainerCollections.Add((containerCollection, priority));
             }
 
-            return targetContainerCollection;
+            IEnumerable<IContainer> result = matchingContainerCollections
+                .OrderBy(x => x.priority)
+                .SelectMany(x => x.containerCollection.Containers);
+
+            return result;
         }
 
         private static Player GetLocalPlayerFromWorld(GameWorld gameWorld)
