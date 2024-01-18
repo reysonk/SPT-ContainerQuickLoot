@@ -235,6 +235,12 @@ namespace CactusPie.ContainerQuickLoot
                 }
 
                 GStruct375<GClass2599> mergeResult = GClass2585.Merge(item, targetItem, controller, simulate);
+
+                if (!mergeResult.Succeeded)
+                {
+                    return false;
+                }
+
                 result = new GStruct375<GInterface275>(mergeResult.Value);
                 return true;
             }
