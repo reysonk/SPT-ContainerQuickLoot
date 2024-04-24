@@ -16,24 +16,24 @@ namespace CactusPie.ContainerQuickLoot
 
         protected override MethodBase GetTargetMethod()
         {
-            MethodInfo method = typeof(GClass2585).GetMethod("QuickFindAppropriatePlace", BindingFlags.Public | BindingFlags.Static);
+            MethodInfo method = typeof(InteractionsHandlerClass).GetMethod("QuickFindAppropriatePlace", BindingFlags.Public | BindingFlags.Static);
             return method;
         }
 
         [PatchPrefix]
         public static bool PatchPrefix(
-            ref GStruct375<GInterface275> __result,
+            ref GStruct414<GInterface324> __result,
             object __instance,
             Item item,
             TraderControllerClass controller,
             IEnumerable<LootItemClass> targets,
-            GClass2585.EMoveItemOrder order,
+            InteractionsHandlerClass.EMoveItemOrder order,
             bool simulate)
         {
             Inventory inventory;
 
             // If is ctrl+click loot
-            if (order == GClass2585.EMoveItemOrder.MoveToAnotherSide)
+            if (order == InteractionsHandlerClass.EMoveItemOrder.MoveToAnotherSide)
             {
                 if (!ContainerQuickLootPlugin.EnableForCtrlClick.Value)
                 {
@@ -41,7 +41,7 @@ namespace CactusPie.ContainerQuickLoot
                 }
             }
             // If is loose loot pick up
-            else if (order == GClass2585.EMoveItemOrder.PickUp && controller.OwnerType == EOwnerType.Profile)
+            else if (order == InteractionsHandlerClass.EMoveItemOrder.PickUp && controller.OwnerType == EOwnerType.Profile)
             {
                 if (!ContainerQuickLootPlugin.EnableForLooseLoot.Value)
                 {
@@ -69,11 +69,11 @@ namespace CactusPie.ContainerQuickLoot
                 return true;
             }
 
-            IEnumerable<IContainer> targetContainers = FindTargetContainers(item, inventory);
+            IEnumerable<EFT.InventoryLogic.IContainer> targetContainers = FindTargetContainers(item, inventory);
 
-            foreach (IContainer collectionContainer in targetContainers)
+            foreach (EFT.InventoryLogic.IContainer collectionContainer in targetContainers)
             {
-                if (!(collectionContainer is GClass2318 container))
+                if (!(collectionContainer is StashGridClass container))
                 {
                     return !TryMergeItemIntoAnExistingStack(item, inventory, controller, simulate, ref __result);
                 }
@@ -98,19 +98,19 @@ namespace CactusPie.ContainerQuickLoot
                             continue;
                         }
 
-                        GStruct375<GClass2599> mergeResult = GClass2585.Merge(item, containedItem.Key, controller, simulate);
-                        __result = new GStruct375<GInterface275>(mergeResult.Value);
+                        GStruct414<GClass2788> mergeResult = InteractionsHandlerClass.Merge(item, containedItem.Key, controller, simulate);
+                        __result = new GStruct414<GInterface324>(mergeResult.Value);
                         return false;
                     }
                 }
 
-                GClass2580 location = container.FindLocationForItem(item);
+                GClass2769 location = container.FindLocationForItem(item);
                 if (location == null)
                 {
                     continue;
                 }
 
-                GStruct375<GClass2597> moveResult = GClass2585.Move(item, location, controller, simulate);
+                GStruct414<GClass2786> moveResult = InteractionsHandlerClass.Move(item, location, controller, simulate);
                 if (moveResult.Failed)
                 {
                     return true;
@@ -118,7 +118,7 @@ namespace CactusPie.ContainerQuickLoot
 
                 if (!moveResult.Value.ItemsDestroyRequired)
                 {
-                    __result = moveResult.Cast<GClass2597, GInterface275>();
+                    __result = moveResult.Cast<GClass2786, GInterface324>();
                 }
 
                 return false;
@@ -132,27 +132,30 @@ namespace CactusPie.ContainerQuickLoot
             GameWorld gameWorld = Singleton<GameWorld>.Instance;
 
             // If gameWorld is null that means the game is currently not in progress, for instance you're in your hideout
-            if (gameWorld == null)
+            //start 3.7 hideout gameWorld nolonger be null.So need to use getlocationId
+            if (gameWorld == null || gameWorld.LocationId == null)
             {
                 inventory = null;
+                // Logger.LogError("在这里代表gameworld==null");
                 return false;
             }
-
+            
             Player player = GetLocalPlayerFromWorld(gameWorld);
-
-            inventory = (Inventory)typeof(Player)
-                .GetProperty("Inventory", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?.GetValue(player);
+            // inventory = (Inventory)typeof(Player)
+            // .GetProperty("Inventory", BindingFlags.NonPublic | BindingFlags.Instance)
+            // ?.GetValue(player);
+            inventory = (Inventory)typeof(Player).GetProperty("Inventory")?.GetValue(player);
 
             if (inventory == null)
             {
+                // Logger.LogError("在这里表示inventory==null");
                 return false;
             }
 
             return true;
         }
 
-        private static IEnumerable<IContainer> FindTargetContainers(Item item, Inventory inventory)
+        private static IEnumerable<EFT.InventoryLogic.IContainer> FindTargetContainers(Item item, Inventory inventory)
         {
             var matchingContainerCollections = new List<(ContainerCollection containerCollection, int priority)>();
 
@@ -196,7 +199,7 @@ namespace CactusPie.ContainerQuickLoot
                 matchingContainerCollections.Add((containerCollection, priority));
             }
 
-            IEnumerable<IContainer> result = matchingContainerCollections
+            IEnumerable<EFT.InventoryLogic.IContainer> result = matchingContainerCollections
                 .OrderBy(x => x.priority)
                 .SelectMany(x => x.containerCollection.Containers);
 
@@ -210,7 +213,7 @@ namespace CactusPie.ContainerQuickLoot
             Inventory inventory,
             TraderControllerClass controller,
             bool simulate,
-            ref GStruct375<GInterface275> result)
+            ref GStruct414<GInterface324> result)
         {
             if (!ContainerQuickLootPlugin.AutoMergeStacksForNonLootContainers.Value)
             {
@@ -234,14 +237,14 @@ namespace CactusPie.ContainerQuickLoot
                     continue;
                 }
 
-                GStruct375<GClass2599> mergeResult = GClass2585.Merge(item, targetItem, controller, simulate);
+                GStruct414<GClass2788> mergeResult = InteractionsHandlerClass.Merge(item, targetItem, controller, simulate);
 
                 if (!mergeResult.Succeeded)
                 {
                     return false;
                 }
 
-                result = new GStruct375<GInterface275>(mergeResult.Value);
+                result = new GStruct414<GInterface324>(mergeResult.Value);
                 return true;
             }
 
