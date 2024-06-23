@@ -225,10 +225,10 @@ namespace CactusPie.ContainerQuickLoot
                 return false;
             }
 
-            foreach (Item targetItem in inventory.Equipment.GetAllItems())
+            foreach (Item targetItem in inventory.Equipment.GetNotMergedItems().Reverse())
             {
                 if (targetItem.Template._id != item.Template._id)
-                {
+                {   
                     continue;
                 }
 
